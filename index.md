@@ -2,14 +2,13 @@
 
 <img src="https://raw.githubusercontent.com/gazbert/bxbot/master/docs/bxbot-cropped.png" align="right" width="25%" />
 
-BX-bot (_Bex_) is a simple [Bitcoin](https://bitcoin.org) trading bot written in Java for trading on cryptocurrency 
-[exchanges](https://bitcoinwisdom.com/).
+BX-bot (_Bex_) is a simple [Bitcoin](https://bitcoin.org) trading bot written in Java for trading 
+[cryptocurrency](http://coinmarketcap.com/).
 
-The project contains the basic infrastructure to trade on a [cryptocurrency](http://coinmarketcap.com/) exchange...
+The project contains the basic infrastructure to trade on a cryptocurrency [exchange](https://bitcoinwisdom.com/)...
 except for the trading strategies - you'll need to write those yourself! A simple example
 [scalping strategy](http://www.investopedia.com/articles/trading/02/081902.asp) is included to get you started with the
-Trading API - take a look [here](http://www.investopedia.com/articles/active-trading/101014/basics-algorithmic-trading-concepts-and-examples.asp)
-for more ideas.
+Trading API - take a look [here](http://www.investopedia.com/articles/active-trading/101014/basics-algorithmic-trading-concepts-and-examples.asp) for more ideas.
 
 Exchange Adapters for using [Bitstamp](https://www.bitstamp.net), [Bitfinex](https://www.bitfinex.com),
 [OKCoin](https://www.okcoin.com/), [Huobi](https://www.huobi.com/), [GDAX](https://www.gdax.com/),
