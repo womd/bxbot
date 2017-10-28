@@ -2,7 +2,7 @@ title: BX-bot
 description: BX-bot is a simple Bitcoin trading bot written in Java
 google_analytics: 
 show_downloads: true
-theme: jekyll-theme-architect
+theme: jekyll-theme-cayman
 
 gems:
   - jekyll-mentions
