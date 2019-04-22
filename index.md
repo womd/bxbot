@@ -16,9 +16,7 @@ Exchange Adapters for using [Bitstamp](https://www.bitstamp.net), [Bitfinex](htt
 Feel free to improve these or contribute new adapters to the project; that would be [shiny!](https://en.wikipedia.org/wiki/Firefly_(TV_series))
 
 The Trading API provides support for [limit orders](http://www.investopedia.com/terms/l/limitorder.asp)
-traded at the [spot price](http://www.investopedia.com/terms/s/spotprice.asp);
-it does not support [futures](http://www.investopedia.com/university/beginners-guide-to-trading-futures/) or 
-[margin](http://www.investopedia.com/university/margin/) trading.
+traded at the [spot price](http://www.investopedia.com/terms/s/spotprice.asp).
  
 **Warning:** Trading Bitcoin carries significant financial risk; you could lose money. This software is provided 'as is'
 and released under the [MIT license](http://opensource.org/licenses/MIT).
