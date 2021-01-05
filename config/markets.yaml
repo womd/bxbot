@@ -41,7 +41,7 @@ markets:
     counterCurrency: EUR
     enabled: true
     tradingStrategyId: scalping-strategy
-    maxDecimalPrice: 5
+    maxDecimalPrice: 3
 
   - id: xdgeur
     name: XDG/EUR
@@ -57,4 +57,4 @@ markets:
     counterCurrency: EUR
     enabled: false
     tradingStrategyId: scalping-strategy
-    maxDecimalPrice: 3
+    maxDecimalPrice: 5
