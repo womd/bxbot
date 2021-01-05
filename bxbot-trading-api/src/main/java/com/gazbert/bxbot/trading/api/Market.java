@@ -71,4 +71,13 @@ public interface Market {
    * @return the counter currency short code, e.g. LTC
    */
   String getCounterCurrency();
+
+  /**
+   * Returns the maximum decimal digits used for setting the sell-order-price.
+   * Exchange like Kraken accept only lower than 8 digits for some currencies
+   * fe. CRV = 3 digits, SC = 5 digits )
+   *
+   * @return the maximal number of decimal places to use for price field on a sell-order
+   */
+  Integer getMaxDecimalPrice();
 }

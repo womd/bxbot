@@ -403,8 +403,13 @@ public class ExampleScalpingStrategy implements TradingStrategy {
 
         // Most exchanges (if not all) use 8 decimal places.
         // It's usually best to round up the ASK price in your calculations to maximise gains.
+        // For Sell-Orders, exchange like Kraken accept only lower amount of decimal-digits
+        // for price field, for some currencies ( e.g CRV = 5, SC = 3 ).
+        // This is configured in marketconfig.yaml -> maxDecimalPrice
         final BigDecimal newAskPrice =
-            lastOrder.price.add(amountToAdd).setScale(8, RoundingMode.HALF_UP);
+                //lastOrder.price.add(amountToAdd).setScale(8, RoundingMode.HALF_UP);
+                lastOrder.price.add(amountToAdd).setScale(market.getMaxDecimalPrice(),
+                        RoundingMode.HALF_UP);
         LOG.info(
             () ->
                 market.getName()

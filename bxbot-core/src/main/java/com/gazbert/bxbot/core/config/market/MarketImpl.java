@@ -38,13 +38,15 @@ public final class MarketImpl implements Market {
   private String id;
   private String baseCurrency;
   private String counterCurrency;
+  private Integer maxDecimalPrice;
 
   /** Creates a new MarketImpl. */
-  public MarketImpl(String name, String id, String baseCurrency, String counterCurrency) {
+  public MarketImpl(String name, String id, String baseCurrency, String counterCurrency, Integer maxDecimalPrice) {
     this.id = id;
     this.name = name;
     this.baseCurrency = baseCurrency;
     this.counterCurrency = counterCurrency;
+    this.maxDecimalPrice = maxDecimalPrice;
   }
 
   public void setName(String name) {
@@ -79,6 +81,10 @@ public final class MarketImpl implements Market {
     return counterCurrency;
   }
 
+  public Integer getMaxDecimalPrice() { return this.maxDecimalPrice; }
+
+  public void setMaxDecimalPrice(Integer maxDecimalPrice) { this.maxDecimalPrice = maxDecimalPrice; }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -103,6 +109,7 @@ public final class MarketImpl implements Market {
         .add("id", id)
         .add("baseCurrency", baseCurrency)
         .add("counterCurrency", counterCurrency)
+        .add("maxDecimalPrice", maxDecimalPrice)
         .toString();
   }
 }

@@ -43,11 +43,13 @@ public class TestMarketConfig {
   private static final String COUNTER_CURRENCY = "USD";
   private static final boolean IS_ENABLED = true;
   private static final String TRADING_STRATEGY = "macd_trend_follower";
+  private static final Integer MAX_DECIMAL_PRICE = 8;
 
   @Test
   public void testInitialisationWorksAsExpected() {
     final MarketConfig marketConfig =
-        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED, TRADING_STRATEGY);
+        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED,
+                TRADING_STRATEGY, MAX_DECIMAL_PRICE);
 
     assertEquals(NAME, marketConfig.getName());
     assertEquals(ID, marketConfig.getId());
@@ -55,6 +57,7 @@ public class TestMarketConfig {
     assertEquals(COUNTER_CURRENCY, marketConfig.getCounterCurrency());
     assertEquals(IS_ENABLED, marketConfig.isEnabled());
     assertEquals(TRADING_STRATEGY, marketConfig.getTradingStrategyId());
+    assertEquals(MAX_DECIMAL_PRICE, marketConfig.getMaxDecimalPrice());
   }
 
   @Test
@@ -89,7 +92,8 @@ public class TestMarketConfig {
   @Test
   public void testCloningWorksAsExpected() {
     final MarketConfig marketConfig =
-        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED, TRADING_STRATEGY);
+        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED,
+                TRADING_STRATEGY, MAX_DECIMAL_PRICE);
     final MarketConfig clonedMarketConfig = new MarketConfig(marketConfig);
 
     assertEquals(clonedMarketConfig, marketConfig);
@@ -98,13 +102,16 @@ public class TestMarketConfig {
   @Test
   public void testEqualsWorksAsExpected() {
     final MarketConfig market1 =
-        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED, TRADING_STRATEGY);
+        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED,
+                TRADING_STRATEGY, MAX_DECIMAL_PRICE);
     final MarketConfig market2 =
         new MarketConfig(
-            "different-id", NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED, TRADING_STRATEGY);
+            "different-id", NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED,
+                TRADING_STRATEGY, MAX_DECIMAL_PRICE);
     final MarketConfig market3 =
         new MarketConfig(
-            ID, "different-name", BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED, TRADING_STRATEGY);
+            ID, "different-name", BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED,
+                TRADING_STRATEGY, MAX_DECIMAL_PRICE);
 
     assertEquals(market1, market1);
     assertNotEquals(market1, market2);
@@ -114,13 +121,16 @@ public class TestMarketConfig {
   @Test
   public void testHashCodeWorksAsExpected() {
     final MarketConfig market1 =
-        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED, TRADING_STRATEGY);
+        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED,
+                TRADING_STRATEGY, MAX_DECIMAL_PRICE);
     final MarketConfig market2 =
         new MarketConfig(
-            "different-id", NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED, TRADING_STRATEGY);
+            "different-id", NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED,
+                TRADING_STRATEGY, MAX_DECIMAL_PRICE);
     final MarketConfig market3 =
         new MarketConfig(
-            ID, "different-name", BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED, TRADING_STRATEGY);
+            ID, "different-name", BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED,
+                TRADING_STRATEGY, MAX_DECIMAL_PRICE);
 
     assertEquals(market1.hashCode(), market1.hashCode());
     assertNotEquals(market1.hashCode(), market2.hashCode());
@@ -130,7 +140,8 @@ public class TestMarketConfig {
   @Test
   public void testToStringWorksAsExpected() {
     final MarketConfig market1 =
-        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED, TRADING_STRATEGY);
+        new MarketConfig(ID, NAME, BASE_CURRENCY, COUNTER_CURRENCY, IS_ENABLED,
+                TRADING_STRATEGY, MAX_DECIMAL_PRICE);
 
     assertEquals(
         "MarketConfig{id=gemini_usd/btc, name=BTC/USD, baseCurrency=BTC,"

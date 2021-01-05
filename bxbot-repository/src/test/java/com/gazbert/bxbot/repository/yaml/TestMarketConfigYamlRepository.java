@@ -70,6 +70,7 @@ public class TestMarketConfigYamlRepository {
   private static final String MARKET_1_COUNTER_CURRENCY = "USD";
   private static final boolean MARKET_1_IS_ENABLED = true;
   private static final String MARKET_1_TRADING_STRATEGY_ID = "macd_trend_follower";
+  private static final Integer MARKET_1_MAX_DECIMAL_PRICE = 8;
 
   private static final String MARKET_2_ID = "gdax_gbp/btc";
   private static final String MARKET_2_NAME = "BTC/GBP";
@@ -77,12 +78,14 @@ public class TestMarketConfigYamlRepository {
   private static final String MARKET_2_COUNTER_CURRENCY = "GBP";
   private static final boolean MARKET_2_IS_ENABLED = false;
   private static final String MARKET_2_TRADING_STRATEGY_ID = "scalper";
+  private static final Integer MARKET_2_MAX_DECIMAL_PRICE = 8;
 
   private static final String NEW_MARKET_NAME = "BTC/ETH";
   private static final String NEW_MARKET_BASE_CURRENCY = "BTC";
   private static final String NEW_MARKET_COUNTER_CURRENCY = "ETH";
   private static final boolean NEW_MARKET_IS_ENABLED = false;
   private static final String NEW_MARKET_TRADING_STRATEGY_ID = "macd-jobby";
+  private static final Integer NEW_MARKET_MAX_DECIMAL_PRICE = 8;
 
   @Before
   public void setup() {
@@ -108,6 +111,7 @@ public class TestMarketConfigYamlRepository {
     assertThat(marketConfigItems.get(0).getCounterCurrency()).isEqualTo(MARKET_1_COUNTER_CURRENCY);
     assertThat(marketConfigItems.get(0).getTradingStrategyId())
         .isEqualTo(MARKET_1_TRADING_STRATEGY_ID);
+    assertThat(marketConfigItems.get(0).getMaxDecimalPrice()).isEqualTo(MARKET_1_MAX_DECIMAL_PRICE);
 
     assertThat(marketConfigItems.get(1).getId()).isEqualTo(MARKET_2_ID);
     assertThat(marketConfigItems.get(1).getName()).isEqualTo(MARKET_2_NAME);
@@ -116,6 +120,7 @@ public class TestMarketConfigYamlRepository {
     assertThat(marketConfigItems.get(1).getCounterCurrency()).isEqualTo(MARKET_2_COUNTER_CURRENCY);
     assertThat(marketConfigItems.get(1).getTradingStrategyId())
         .isEqualTo(MARKET_2_TRADING_STRATEGY_ID);
+    assertThat(marketConfigItems.get(1).getMaxDecimalPrice()).isEqualTo(MARKET_2_MAX_DECIMAL_PRICE);
 
     PowerMock.verifyAll();
   }
@@ -136,6 +141,7 @@ public class TestMarketConfigYamlRepository {
     assertThat(marketConfig.getBaseCurrency()).isEqualTo(MARKET_1_BASE_CURRENCY);
     assertThat(marketConfig.getCounterCurrency()).isEqualTo(MARKET_1_COUNTER_CURRENCY);
     assertThat(marketConfig.getTradingStrategyId()).isEqualTo(MARKET_1_TRADING_STRATEGY_ID);
+    assertThat(marketConfig.getMaxDecimalPrice()).isEqualTo(MARKET_1_MAX_DECIMAL_PRICE);
 
     PowerMock.verifyAll();
   }
@@ -176,6 +182,7 @@ public class TestMarketConfigYamlRepository {
     assertThat(marketConfig.getBaseCurrency()).isEqualTo(MARKET_1_BASE_CURRENCY);
     assertThat(marketConfig.getCounterCurrency()).isEqualTo(MARKET_1_COUNTER_CURRENCY);
     assertThat(marketConfig.getTradingStrategyId()).isEqualTo(MARKET_1_TRADING_STRATEGY_ID);
+    assertThat(marketConfig.getMaxDecimalPrice()).isEqualTo(MARKET_1_MAX_DECIMAL_PRICE);
 
     PowerMock.verifyAll();
   }
@@ -222,6 +229,7 @@ public class TestMarketConfigYamlRepository {
     assertThat(marketConfig.getBaseCurrency()).isEqualTo(NEW_MARKET_BASE_CURRENCY);
     assertThat(marketConfig.getCounterCurrency()).isEqualTo(NEW_MARKET_COUNTER_CURRENCY);
     assertThat(marketConfig.getTradingStrategyId()).isEqualTo(NEW_MARKET_TRADING_STRATEGY_ID);
+    assertThat(marketConfig.getMaxDecimalPrice()).isEqualTo(NEW_MARKET_MAX_DECIMAL_PRICE);
 
     PowerMock.verifyAll();
   }
@@ -245,6 +253,7 @@ public class TestMarketConfigYamlRepository {
     assertThat(marketConfig.getBaseCurrency()).isEqualTo(MARKET_1_BASE_CURRENCY);
     assertThat(marketConfig.getCounterCurrency()).isEqualTo(MARKET_1_COUNTER_CURRENCY);
     assertThat(marketConfig.getTradingStrategyId()).isEqualTo(MARKET_1_TRADING_STRATEGY_ID);
+    assertThat(marketConfig.getMaxDecimalPrice()).isEqualTo(MARKET_1_MAX_DECIMAL_PRICE);
 
     PowerMock.verifyAll();
   }
@@ -275,6 +284,7 @@ public class TestMarketConfigYamlRepository {
     marketConfig1.setBaseCurrency(MARKET_1_BASE_CURRENCY);
     marketConfig1.setCounterCurrency(MARKET_1_COUNTER_CURRENCY);
     marketConfig1.setTradingStrategyId(MARKET_1_TRADING_STRATEGY_ID);
+    marketConfig1.setMaxDecimalPrice(MARKET_1_MAX_DECIMAL_PRICE);
 
     final MarketConfig marketConfig2 = new MarketConfig();
     marketConfig2.setId(MARKET_2_ID);
@@ -283,6 +293,7 @@ public class TestMarketConfigYamlRepository {
     marketConfig2.setBaseCurrency(MARKET_2_BASE_CURRENCY);
     marketConfig2.setCounterCurrency(MARKET_2_COUNTER_CURRENCY);
     marketConfig2.setTradingStrategyId(MARKET_2_TRADING_STRATEGY_ID);
+    marketConfig2.setMaxDecimalPrice(MARKET_2_MAX_DECIMAL_PRICE);
 
     final MarketsType marketsType = new MarketsType();
     marketsType.getMarkets().add(marketConfig1);
@@ -299,6 +310,7 @@ public class TestMarketConfigYamlRepository {
     newMarket.setBaseCurrency(NEW_MARKET_BASE_CURRENCY);
     newMarket.setCounterCurrency(NEW_MARKET_COUNTER_CURRENCY);
     newMarket.setTradingStrategyId(NEW_MARKET_TRADING_STRATEGY_ID);
+    newMarket.setMaxDecimalPrice(NEW_MARKET_MAX_DECIMAL_PRICE);
 
     final MarketsType existingMarketsPlusNewOne = allTheInternalMarketsConfig();
     existingMarketsPlusNewOne.getMarkets().add(newMarket);
@@ -312,7 +324,8 @@ public class TestMarketConfigYamlRepository {
         MARKET_1_BASE_CURRENCY,
         MARKET_1_COUNTER_CURRENCY,
         MARKET_1_IS_ENABLED,
-        MARKET_1_TRADING_STRATEGY_ID);
+        MARKET_1_TRADING_STRATEGY_ID,
+        MARKET_1_MAX_DECIMAL_PRICE);
   }
 
   private static MarketConfig someNewExternalMarketConfig() {
@@ -322,7 +335,8 @@ public class TestMarketConfigYamlRepository {
         NEW_MARKET_BASE_CURRENCY,
         NEW_MARKET_COUNTER_CURRENCY,
         NEW_MARKET_IS_ENABLED,
-        NEW_MARKET_TRADING_STRATEGY_ID);
+        NEW_MARKET_TRADING_STRATEGY_ID,
+        NEW_MARKET_MAX_DECIMAL_PRICE);
   }
 
   private static MarketConfig someExternalMarketConfigWithUnknownId() {
@@ -332,6 +346,7 @@ public class TestMarketConfigYamlRepository {
         MARKET_1_BASE_CURRENCY,
         MARKET_1_COUNTER_CURRENCY,
         MARKET_1_IS_ENABLED,
-        MARKET_1_TRADING_STRATEGY_ID);
+        MARKET_1_TRADING_STRATEGY_ID,
+        MARKET_1_MAX_DECIMAL_PRICE);
   }
 }

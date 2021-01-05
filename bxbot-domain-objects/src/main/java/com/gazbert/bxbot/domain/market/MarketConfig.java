@@ -44,6 +44,7 @@ public class MarketConfig {
   private String counterCurrency;
   private boolean enabled;
   private String tradingStrategyId;
+  private Integer maxDecimalPrice;
 
   // Required by ConfigurableComponentFactory
   public MarketConfig() {
@@ -57,6 +58,7 @@ public class MarketConfig {
     this.counterCurrency = other.counterCurrency;
     this.enabled = other.enabled;
     this.tradingStrategyId = other.tradingStrategyId;
+    this.maxDecimalPrice = other.maxDecimalPrice;
   }
 
   /** Creates a new MarketConfig. */
@@ -66,7 +68,8 @@ public class MarketConfig {
       String baseCurrency,
       String counterCurrency,
       boolean enabled,
-      String tradingStrategyId) {
+      String tradingStrategyId,
+      Integer maxDecimalPrice) {
 
     this.id = id;
     this.name = name;
@@ -74,6 +77,7 @@ public class MarketConfig {
     this.counterCurrency = counterCurrency;
     this.enabled = enabled;
     this.tradingStrategyId = tradingStrategyId;
+    this.maxDecimalPrice = maxDecimalPrice;
   }
 
   public String getId() {
@@ -124,6 +128,12 @@ public class MarketConfig {
     this.tradingStrategyId = tradingStrategyId;
   }
 
+  public Integer getMaxDecimalPrice() { return maxDecimalPrice;  }
+
+  public void setMaxDecimalPrice(Integer maxDecimalPrice) {
+    this.maxDecimalPrice = maxDecimalPrice;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -150,6 +160,7 @@ public class MarketConfig {
         .add("counterCurrency", counterCurrency)
         .add("enabled", enabled)
         .add("tradingStrategyId", tradingStrategyId)
+        .add("maxDecimalPrice", maxDecimalPrice)
         .toString();
   }
 }
