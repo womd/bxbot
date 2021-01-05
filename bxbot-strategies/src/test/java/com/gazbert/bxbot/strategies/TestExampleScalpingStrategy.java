@@ -58,7 +58,7 @@ public class TestExampleScalpingStrategy {
   private static final String MARKET_ID = "btc_usd";
   private static final String BASE_CURRENCY = "BTC";
   private static final String COUNTER_CURRENCY = "USD";
-  private static final Integer MAX_DECIMAL_PRICE = 8;
+  private static final Integer MAX_DECIMAL_PRICE = 5;
 
   private static final String CONFIG_ITEM_COUNTER_CURRENCY_BUY_ORDER_AMOUNT = "20"; // USD amount
   private static final String CONFIG_ITEM_MINIMUM_PERCENTAGE_GAIN = "2";
@@ -184,7 +184,7 @@ public class TestExampleScalpingStrategy {
         lastOrderPrice
             .multiply(requiredProfitInPercent)
             .add(lastOrderPrice)
-            .setScale(8, RoundingMode.HALF_UP);
+            .setScale(MAX_DECIMAL_PRICE, RoundingMode.HALF_UP);
     final String orderId = "4239407234";
     expect(market.getId()).andReturn(MARKET_ID).atLeastOnce();
     expect(tradingApi.createOrder(MARKET_ID, OrderType.SELL, lastOrderAmount, newAskPrice))
@@ -544,7 +544,7 @@ public class TestExampleScalpingStrategy {
         lastOrderPrice
             .multiply(requiredProfitInPercent)
             .add(lastOrderPrice)
-            .setScale(8, RoundingMode.HALF_UP);
+            .setScale(MAX_DECIMAL_PRICE, RoundingMode.HALF_UP);
     expect(market.getId()).andReturn(MARKET_ID).atLeastOnce();
     expect(tradingApi.createOrder(MARKET_ID, OrderType.SELL, lastOrderAmount, newAskPrice))
         .andThrow(new ExchangeNetworkException("Timeout waiting for exchange!"));
@@ -699,6 +699,7 @@ public class TestExampleScalpingStrategy {
     // expect to check if the buy order has filled
     expect(market.getId()).andReturn(MARKET_ID);
     expect(market.getMaxDecimalPrice()).andReturn(MAX_DECIMAL_PRICE);
+
     expect(tradingApi.getYourOpenOrders(MARKET_ID))
         .andReturn(new ArrayList<>()); // empty list; order has filled
 
@@ -708,7 +709,7 @@ public class TestExampleScalpingStrategy {
         lastOrderPrice
             .multiply(requiredProfitInPercent)
             .add(lastOrderPrice)
-            .setScale(8, RoundingMode.HALF_UP);
+            .setScale(MAX_DECIMAL_PRICE, RoundingMode.HALF_UP);
     expect(market.getId()).andReturn(MARKET_ID).atLeastOnce();
     expect(tradingApi.createOrder(MARKET_ID, OrderType.SELL, lastOrderAmount, newAskPrice))
         .andThrow(new TradingApiException("Exchange returned a 500 status code!"));
