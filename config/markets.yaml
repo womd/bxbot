@@ -9,33 +9,52 @@
 markets:
 
   # The id value is the market id as defined on the exchange, e.g. 'btcusd'.
-  - id: btcusd
+  - id: xmreur
 
     # A friendly name for the market. Value must be an alphanumeric string. Spaces are allowed. E.g. BTC/USD
-    name: BTC/USD
+    name: XMR/EUR
 
     # The baseCurrency value is the currency short code for the base currency in the currency pair. When you buy or
     # sell a currency pair, you are performing that action on the base currency. The base currency is the commodity you
     # are buying or selling. E.g. in a BTC/USD market, the first currency (BTC) is the base currency and the second
     # currency (USD) is the counter currency.
-    baseCurrency: BTC
+    baseCurrency: XMR
 
     # The counterCurrency value is the currency short code for the counter currency in the currency pair. This is also
     # known as the quote currency.
-    counterCurrency: USD
+    counterCurrency: EUR
 
     # The enabled value allows you toggle trading on the market - config changes are only applied on startup.
-    enabled: true
+    enabled: false
 
     # The tradingStrategyId value must match a strategy id defined in your strategies.yaml config.
     # Currently, BX-bot only supports 1 strategy per market.
     tradingStrategyId: scalping-strategy
 
-  - id: ltcusd
-    name: LTC/BTC
-    baseCurrency: LTC
-    counterCurrency: BTC
+    # The number of decimal digits used for Price of a sell-order
+    # Exchanges like Kraken accept lower number of digits for certain currencies ( CRV, SC )
+    maxDecimalPrice: 8
+
+  - id: crveur
+    name: CRV/EUR
+    baseCurrency: CRV
+    counterCurrency: EUR
+    enabled: true
+    tradingStrategyId: scalping-strategy
+    maxDecimalPrice: 3
+
+  - id: xdgeur
+    name: XDG/EUR
+    baseCurrency: XDG
+    counterCurrency: EUR
     enabled: false
     tradingStrategyId: scalping-strategy
+    maxDecimalPrice: 8
 
-
+  - id: sceur
+    name: SC/EUR
+    baseCurrency: SC
+    counterCurrency: EUR
+    enabled: false
+    tradingStrategyId: scalping-strategy
+    maxDecimalPrice: 5
