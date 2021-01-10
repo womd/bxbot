@@ -1,5 +1,6 @@
 package com.gazbert.bxbot.exchanges;
 
+
 import com.gazbert.bxbot.exchange.api.AuthenticationConfig;
 import com.gazbert.bxbot.exchange.api.ExchangeAdapter;
 import com.gazbert.bxbot.exchange.api.ExchangeConfig;
@@ -10,6 +11,11 @@ import com.google.common.base.MoreObjects;
 import com.google.gson.*;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,15 +40,13 @@ implements ExchangeAdapter {
 
     private static final Logger LOG = LogManager.getLogger();
 
-    private static final String CRYPTOCOM_BASE_URI_TEST = "https://uat-api.3ona.co/v2/";
-    private static final String CRYPTOCOM_BASE_URI_PROD = "https://api.crypto.com/v2/";
+    private static final String CRYPTOCOM_BASE_URI_TEST = "https://uat-api.3ona.co/";
+    private static final String CRYPTOCOM_BASE_URI_PROD = "https://api.crypto.com/";
     private static final String CRYPTOCOM_API_VERSION = "v2";
-    private static final String CRYPTOCOM_PUBLIC_PATH = "/public/";
-    private static final String CRYPTOCOM_PRIVATE_PATH = "/private/";
     private static final String PUBLIC_API_BASE_URL =
-            CRYPTOCOM_BASE_URI_TEST + CRYPTOCOM_API_VERSION + CRYPTOCOM_PUBLIC_PATH;
+            CRYPTOCOM_BASE_URI_PROD + CRYPTOCOM_API_VERSION + "/";
     private static final String AUTHENTICATED_API_URL =
-            CRYPTOCOM_BASE_URI_TEST + CRYPTOCOM_API_VERSION + CRYPTOCOM_PRIVATE_PATH;
+            CRYPTOCOM_BASE_URI_PROD + CRYPTOCOM_API_VERSION + "/";
 
     private static final String KEY_PROPERTY_NAME = "key";
     private static final String SECRET_PROPERTY_NAME = "secret";
@@ -88,6 +92,7 @@ implements ExchangeAdapter {
     private boolean initializedMacAuthentication = false;
     private Gson gson;
 
+
     @Override
     public void init(ExchangeConfig config) {
         LOG.info(() -> "About to initialise Crypto.com ExchangeConfig: " + config);
@@ -113,20 +118,22 @@ implements ExchangeAdapter {
         ExchangeHttpResponse response;
 
         try {
-            final Map<String, String> params = createRequestParamMap();
-            params.put("pair", marketId);
+            final Map<String, Object> params = createRequestParamMap();
+            params.put("instrument_name", marketId);
+            params.put("depth","10");
 
-            response = sendPublicRequestToExchange("Depth", params);
+            //response = sendPublicRequestToExchange("Depth", params);
+            response = sendPublicRequestToExchange("public/get-book", params);
+
             LOG.debug(() -> "Market Orders response: " + response);
 
             if (response.getStatusCode() == HttpURLConnection.HTTP_OK) {
                 final Type resultType =
-                        new TypeToken<CryptoComExchangeAdapter.CryptoComResponse<CryptoComExchangeAdapter.CryptoComMarketOrderBookResult>>() {}.getType();
-                final CryptoComExchangeAdapter.CryptoComResponse krakenResponse = gson.fromJson(response.getPayload(), resultType);
+                        new TypeToken<CryptoComMarketOrderBookResponse>() {}.getType();
+                final CryptoComMarketOrderBookResponse orderBookResponse = gson.fromJson(response.getPayload(), resultType);
 
-                final List errors = krakenResponse.error;
-                if (errors == null || errors.isEmpty()) {
-                    return adaptKrakenOrderBook(krakenResponse, marketId);
+                if (orderBookResponse.code.equals(0)) {
+                    return adaptKrakenOrderBook(orderBookResponse, marketId);
 
                 } else {
                     if (isExchangeUndergoingMaintenance(response) && keepAliveDuringMaintenance) {
@@ -152,6 +159,7 @@ implements ExchangeAdapter {
             LOG.error(UNEXPECTED_ERROR_MSG, e);
             throw new TradingApiException(UNEXPECTED_ERROR_MSG, e);
         }
+
     }
 
     @Override
@@ -159,9 +167,13 @@ implements ExchangeAdapter {
         ExchangeHttpResponse response;
 
         try {
-            response = sendAuthenticatedRequestToExchange("OpenOrders", null);
+           // response = sendAuthenticatedRequestToExchange("OpenOrders", null);
+           // response = sendAuthenticatedRequestToExchange("get-open-orders", null);
+            response = new ExchangeHttpResponse(200,"test","test");
             LOG.debug(() -> "Open Orders response: " + response);
 
+            return null;
+            /*
             if (response.getStatusCode() == HttpURLConnection.HTTP_OK) {
 
                 final Type resultType = new TypeToken<CryptoComExchangeAdapter.CryptoComResponse<CryptoComExchangeAdapter.CryptoComOpenOrderResult>>() {}.getType();
@@ -190,7 +202,7 @@ implements ExchangeAdapter {
 
         } catch (ExchangeNetworkException | TradingApiException e) {
             throw e;
-
+*/
         } catch (Exception e) {
             LOG.error(UNEXPECTED_ERROR_MSG, e);
             throw new TradingApiException(UNEXPECTED_ERROR_MSG, e);
@@ -202,16 +214,17 @@ implements ExchangeAdapter {
         ExchangeHttpResponse response;
 
         try {
-            final Map<String, String> params = createRequestParamMap();
-            params.put("pair", marketId);
+
+            final Map<String, Object> params = createRequestParamMap();
+            params.put("instrument_name", marketId);
 
             if (orderType == OrderType.BUY) {
-                params.put("type", "buy");
+                params.put("side", "BUY");
             } else if (orderType == OrderType.SELL) {
-                params.put("type", "sell");
+                params.put("side", "SELL");
             } else {
                 final String errorMsg =
-                        "Invalid order type: "
+                        "Invalid order type/side: "
                                 + orderType
                                 + " - Can only be "
                                 + OrderType.BUY.getStringValue()
@@ -221,28 +234,34 @@ implements ExchangeAdapter {
                 throw new IllegalArgumentException(errorMsg);
             }
 
-            params.put("ordertype", "limit"); // this exchange adapter only supports limit orders
+            params.put("type", "LIMIT"); // this exchange adapter only supports limit orders
             params.put(PRICE, new DecimalFormat("#.########", getDecimalFormatSymbols()).format(price));
             params.put(
-                    "volume", new DecimalFormat("#.########", getDecimalFormatSymbols()).format(quantity));
+                    "quantity", new DecimalFormat("#.########", getDecimalFormatSymbols()).format(quantity));
 
-            response = sendAuthenticatedRequestToExchange("AddOrder", params);
+
+            nonce = System.currentTimeMillis();
+            nonce++;
+
+            ApiRequestJson apiRequestJson = ApiRequestJson.builder()
+                    .id(nonce)
+                    .apiKey(key)
+                    .params(params)
+                    .method("private/create-order")
+                    .nonce(nonce)
+                    .build();
+
+
+            response = sendAuthenticatedRequestToExchange("private/create-order", apiRequestJson);
             LOG.debug(() -> "Create Order response: " + response);
 
             if (response.getStatusCode() == HttpURLConnection.HTTP_OK) {
 
-                final Type resultType = new TypeToken<CryptoComExchangeAdapter.CryptoComResponse<CryptoComExchangeAdapter.CryptoComAddOrderResult>>() {}.getType();
-                final CryptoComExchangeAdapter.CryptoComResponse cryptoComResponse = gson.fromJson(response.getPayload(), resultType);
+                final Type resultType = new TypeToken<CryptoComCreateOrderResponse>() {}.getType();
+                final CryptoComCreateOrderResponse createOrderResponse = gson.fromJson(response.getPayload(), resultType);
 
-                final List errors = cryptoComResponse.error;
-                if (errors == null || errors.isEmpty()) {
-
-                    // Assume we'll always get something here if errors array is empty; else blow fast wih NPE
-                    final CryptoComExchangeAdapter.CryptoComAddOrderResult cryptoComAddOrderResult =
-                            (CryptoComExchangeAdapter.CryptoComAddOrderResult) cryptoComResponse.result;
-
-                    // Just return the first one. Why an array?
-                    return cryptoComAddOrderResult.txid.get(0);
+                if (createOrderResponse.code.equals(0)) {
+                    return "clientOrderId: " + createOrderResponse.clientOrderId + " orderId: " + createOrderResponse.orderId;
 
                 } else {
                     if (isExchangeUndergoingMaintenance(response) && keepAliveDuringMaintenance) {
@@ -275,20 +294,21 @@ implements ExchangeAdapter {
         ExchangeHttpResponse response;
 
         try {
-            final Map<String, String> params = createRequestParamMap();
+            final Map<String, Object> params = createRequestParamMap();
             params.put("txid", orderId);
 
-            response = sendAuthenticatedRequestToExchange("CancelOrder", params);
+            //response = sendAuthenticatedRequestToExchange("CancelOrder", params);
+         //   response = sendAuthenticatedRequestToExchange("cancel-order", params);
+            response = new ExchangeHttpResponse(200,"test","test");
             LOG.debug(() -> "Cancel Order response: " + response);
 
             if (response.getStatusCode() == HttpURLConnection.HTTP_OK) {
 
                 final Type resultType =
-                        new TypeToken<CryptoComExchangeAdapter.CryptoComResponse<CryptoComExchangeAdapter.CryptoComCancelOrderResult>>() {}.getType();
+                        new TypeToken<CryptoComResponse<CryptoComCancelOrderResult>>() {}.getType();
                 final CryptoComExchangeAdapter.CryptoComResponse cryptoComResponse = gson.fromJson(response.getPayload(), resultType);
 
-                final List errors = cryptoComResponse.error;
-                if (errors == null || errors.isEmpty()) {
+                if (cryptoComResponse.code.equals(0)) {
                     return adaptKrakenCancelOrderResult(cryptoComResponse);
 
                 } else {
@@ -322,26 +342,25 @@ implements ExchangeAdapter {
         ExchangeHttpResponse response;
 
         try {
-            final Map<String, String> params = createRequestParamMap();
-            params.put("pair", marketId);
+            final Map<String, Object> params = createRequestParamMap();
+            params.put("instrument_name", marketId);
 
-            response = sendPublicRequestToExchange("Ticker", params);
+            response = sendPublicRequestToExchange("public/get-ticker", params);
             LOG.debug(() -> "Latest Market Price response: " + response);
 
             if (response.getStatusCode() == HttpURLConnection.HTTP_OK) {
 
-                final Type resultType = new TypeToken<CryptoComExchangeAdapter.CryptoComResponse<CryptoComExchangeAdapter.CryptoComTickerResult>>() {}.getType();
-                final CryptoComExchangeAdapter.CryptoComResponse cryptoComResponse = gson.fromJson(response.getPayload(), resultType);
+                final Type resultType = new TypeToken<CryptoComTickerResponse>() {}.getType();
+                final CryptoComTickerResponse tickerResponse = gson.fromJson(response.getPayload(), resultType);
 
-                final List errors = cryptoComResponse.error;
-                if (errors == null || errors.isEmpty()) {
+                if (tickerResponse.code.equals(0)) {
 
                     // Assume we'll always get something here if errors array is empty; else blow fast wih NPE
-                    final CryptoComExchangeAdapter.CryptoComTickerResult tickerResult = (CryptoComExchangeAdapter.CryptoComTickerResult) cryptoComResponse.result;
+                  //  final CryptoComExchangeAdapter.CryptoComTickerResult tickerResult = null; // (CryptoComExchangeAdapter.CryptoComTickerResult) cryptoComResponse.result;
 
                     // 'c' key into map is the last market price: last trade closed array(<price>, <lot
                     // volume>)
-                    return new BigDecimal(tickerResult.get("c"));
+                    return tickerResponse.ticker.data.priceOfLatestTrade;
 
                 } else {
 
@@ -372,13 +391,37 @@ implements ExchangeAdapter {
     @Override
     public BalanceInfo getBalanceInfo() throws ExchangeNetworkException, TradingApiException {
         ExchangeHttpResponse response;
+        final String apiMethod = "private/get-account-summary";
 
         try {
-            response = sendAuthenticatedRequestToExchange("Balance", null);
+
+            final Map<String, Object> params = createRequestParamMap();
+
+            nonce = System.currentTimeMillis();
+            nonce++;
+
+            ApiRequestJson apiRequestJson = ApiRequestJson.builder()
+                    .id(nonce)
+                    .apiKey(key)
+                    .params(params)
+                    .method(apiMethod)
+                    .nonce(nonce)
+                    .build();
+/*
+            ApiRequestJson jsonToSend = SigningUtil.sign(apiRequestJson, secret);
+
+            final Map<String, String> requestHeaders = createHeaderParamMap();
+            requestHeaders.put("Content-Type", "application/json");
+
+            final URL url = new URL(AUTHENTICATED_API_URL + apiMethod);
+            response = makeNetworkRequest(url, "POST", gson.toJson(jsonToSend), requestHeaders);
+*/
+            response = sendAuthenticatedRequestToExchange(apiMethod, apiRequestJson);
+
             LOG.debug(() -> "Balance Info response: " + response);
 
             if (response.getStatusCode() == HttpURLConnection.HTTP_OK) {
-                final Type resultType = new TypeToken<CryptoComExchangeAdapter.CryptoComResponse<CryptoComExchangeAdapter.CryptoComBalanceResult>>() {}.getType();
+                final Type resultType = new TypeToken<CryptoComExchangeAdapter.CryptoComBalancesResponse>() {}.getType();
                 return adaptCryptoComBalanceInfo(response, resultType);
 
             } else {
@@ -394,6 +437,7 @@ implements ExchangeAdapter {
             LOG.error(UNEXPECTED_ERROR_MSG, e);
             throw new TradingApiException(UNEXPECTED_ERROR_MSG, e);
         }
+
     }
 
     @Override
@@ -411,22 +455,21 @@ implements ExchangeAdapter {
         ExchangeHttpResponse response;
 
         try {
-            final Map<String, String> params = createRequestParamMap();
-            params.put("pair", marketId);
+            final Map<String, Object> params = createRequestParamMap();
+            params.put("instrument_name", marketId);
 
-            response = sendPublicRequestToExchange("Ticker", params);
+            response = sendPublicRequestToExchange("public/get-ticker", params);
             LOG.debug(() -> "Ticker response: " + response);
 
             if (response.getStatusCode() == HttpURLConnection.HTTP_OK) {
 
                 final Type resultType = new TypeToken<CryptoComExchangeAdapter.CryptoComResponse<CryptoComExchangeAdapter.CryptoComTickerResult>>() {}.getType();
-                final CryptoComExchangeAdapter.CryptoComResponse krakenResponse = gson.fromJson(response.getPayload(), resultType);
+                final CryptoComExchangeAdapter.CryptoComResponse cryptoComResponse = gson.fromJson(response.getPayload(), resultType);
 
-                final List errors = krakenResponse.error;
-                if (errors == null || errors.isEmpty()) {
+                if (cryptoComResponse.code.equals(0)) {
 
                     // Assume we'll always get something here if errors array is empty; else blow fast wih NPE
-                    final CryptoComExchangeAdapter.CryptoComTickerResult tickerResult = (CryptoComExchangeAdapter.CryptoComTickerResult) krakenResponse.result;
+                    final CryptoComExchangeAdapter.CryptoComTickerResult tickerResult = null; // (CryptoComExchangeAdapter.CryptoComTickerResult) cryptoComResponse.result;
 
                     // ouch!
                     return new TickerImpl(
@@ -466,6 +509,97 @@ implements ExchangeAdapter {
         }
     }
 
+    public void testPublicCall() {
+
+        ExchangeHttpResponse response;
+
+        try {
+            final Map<String, Object> params = createRequestParamMap();
+            //params.put("pair", marketId);
+
+            response = sendPublicRequestToExchange("public/get-instruments", params);
+            LOG.debug(() -> "get-instruments response: " + response);
+
+            if (response.getStatusCode() == HttpURLConnection.HTTP_OK) {
+
+            }
+        }
+        catch (Exception e){
+            LOG.error(e);
+        }
+    }
+
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    private static class ApiRequestJson {
+        private Long id;
+        private String method;
+        private Map<String, Object> params;
+        private String sig;
+
+        @SerializedName("api_key")
+        private String apiKey;
+
+        private Long nonce;
+    }
+
+    private static class SigningUtil {
+        private static final String HMAC_SHA256 = "HmacSHA256";
+
+        public static boolean verifySignature(ApiRequestJson apiRequestJson, String secret) {
+
+            try {
+                return genSignature(apiRequestJson, secret).equals(apiRequestJson.getSig());
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        public static String genSignature(ApiRequestJson apiRequestJson, String secret) throws NoSuchAlgorithmException, InvalidKeyException {
+            final byte[] byteKey = secret.getBytes(StandardCharsets.UTF_8);
+            Mac mac = Mac.getInstance(HMAC_SHA256);
+            SecretKeySpec keySpec = new SecretKeySpec(byteKey, HMAC_SHA256);
+            mac.init(keySpec);
+
+
+            String paramsString = "";
+
+            if (apiRequestJson.getParams() != null) {
+                TreeMap<String, Object> params = new TreeMap<>(apiRequestJson.getParams());
+
+                for (Map.Entry<String, Object> entry : params.entrySet()) {
+                    paramsString += entry.getKey() + entry.getValue();
+                }
+            }
+
+            String sigPayload =
+                    apiRequestJson.getMethod()
+                            + apiRequestJson.getId()
+                            + apiRequestJson.getApiKey()
+                            + paramsString
+                            + (apiRequestJson.getNonce() == null ? "" : apiRequestJson.getNonce());
+
+            byte[] macData = mac.doFinal(sigPayload.getBytes(StandardCharsets.UTF_8));
+
+            final String signedRequest = Hex.encodeHexString(macData);
+
+            return signedRequest;
+
+        }
+
+        public static ApiRequestJson sign(ApiRequestJson apiRequestJson, String secret) throws InvalidKeyException, NoSuchAlgorithmException {
+            apiRequestJson.setSig(genSignature(apiRequestJson, secret));
+
+            return apiRequestJson;
+        }
+
+
+    }
+
+
 
     // --------------------------------------------------------------------------
     //  GSON classes for JSON responses.
@@ -490,15 +624,13 @@ implements ExchangeAdapter {
      *
      * <p>The result Type is what varies with each API call.
      */
+    @Data
     private static class CryptoComResponse<T> {
 
-        List<String> error;
-        T result;
+        Long id;
+        String method;
+        Integer code;
 
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(this).add("error", error).add("result", result).toString();
-        }
     }
 
     /** GSON class that wraps Depth API call result - the Market Order Book. */
@@ -507,10 +639,92 @@ implements ExchangeAdapter {
         private static final long serialVersionUID = -4913711010647027421L;
     }
 
-    /** GSON class that wraps a Balance API call result. */
-    private static class CryptoComBalanceResult extends HashMap<String, BigDecimal> {
+    private static class CryptoComMarketOrderBookResponse extends CryptoComResponse{
 
-        private static final long serialVersionUID = -4919711010647027759L;
+        @SerializedName("result")
+        CryptoComOrderBook orderBook;
+
+    }
+
+    @Data
+    private static class CryptoComOrderBook {
+        @SerializedName("instrument_name")
+        private String instrumentName;
+        private Integer depth;
+        private List<CryptoComOrderBookData> data;
+    }
+
+    @Data
+    private static class CryptoComOrderBookData {
+        private List<CryptoComMarketOrder>bids;
+        private List<CryptoComMarketOrder>asks;
+    }
+
+    @Data
+    private static class CryptoComBalancesResponse extends CryptoComResponse{
+
+        @SerializedName("result")
+        CryptoComAccount accounts;
+
+    }
+
+    @Data
+    private static class CryptoComAccount {
+        @SerializedName("accounts")
+        private ArrayList<CryptoComAccountBalance>balances;
+    }
+
+    @Data
+    private static class CryptoComAccountBalance {
+
+        private BigDecimal balance;
+        private BigDecimal available;
+        private BigDecimal order;
+        private BigDecimal stake;
+        private String currency;
+    }
+
+    private static class CryptoComTickerResponse extends CryptoComResponse {
+
+        @SerializedName("result")
+        CryptoComTicker ticker;
+    }
+
+    @Data
+    private static class CryptoComTicker {
+        @SerializedName("instrument_name")
+        private String instrumentName;
+        private CryptoComTickerData data;
+    }
+
+    @Data
+    private static class CryptoComTickerData {
+        @SerializedName("i")
+        private String instrumentName;
+
+        @SerializedName("b")
+        private BigDecimal currentBestBidPrice;
+
+        @SerializedName("k")
+        private BigDecimal currentBestAskPrice;
+
+        @SerializedName("a")
+        private BigDecimal priceOfLatestTrade;
+
+        @SerializedName("t")
+        private Long timeStamp;
+
+        @SerializedName("v")
+        private BigDecimal total24hVolume;
+
+        @SerializedName("h")
+        private BigDecimal price24hHighestTrade;
+
+        @SerializedName("l")
+        private BigDecimal price24hLowestTrade;
+
+        @SerializedName("c")
+        private BigDecimal priceChange24h;
     }
 
     /** GSON class that wraps a Ticker API call result. */
@@ -545,7 +759,7 @@ implements ExchangeAdapter {
         CryptoComExchangeAdapter.CryptoComOpenOrderDescription descr;
         BigDecimal vol;
 
-        @SerializedName("vol_exec")
+     //  @SerializedName("vol_exec")
         BigDecimal volExec;
 
         BigDecimal cost;
@@ -601,6 +815,7 @@ implements ExchangeAdapter {
     }
 
     /** GSON class representing an AddOrder result. */
+    /*
     private static class CryptoComAddOrderResult {
 
         CryptoComExchangeAdapter.CryptoComAddOrderResultDescription descr;
@@ -610,6 +825,14 @@ implements ExchangeAdapter {
         public String toString() {
             return MoreObjects.toStringHelper(this).add("descr", descr).add("txid", txid).toString();
         }
+    }*/
+
+    @Data
+    private static class CryptoComCreateOrderResponse extends CryptoComResponse{
+        @SerializedName("order_id")
+        private String orderId;
+        @SerializedName("client_oid")
+        private String clientOrderId;
     }
 
     /** GSON class representing an AddOrder result description. */
@@ -635,6 +858,7 @@ implements ExchangeAdapter {
     }
 
     /** GSON class for a Market Order Book. */
+    /*
     private static class CryptoComOrderBook {
 
         List<CryptoComExchangeAdapter.CryptoComMarketOrder> bids;
@@ -645,15 +869,27 @@ implements ExchangeAdapter {
             return MoreObjects.toStringHelper(this).add("bids", bids).add("asks", asks).toString();
         }
     }
+    */
+
+
 
     /**
      * GSON class for holding Market Orders. First element in array is price, second element is
      * amount, 3rd is UNIX time.
      */
+
     private static class CryptoComMarketOrder extends ArrayList<BigDecimal> {
 
         private static final long serialVersionUID = -4959711260742077759L;
     }
+    /*
+    @Data
+    private static class CryptoComMarketOrder {
+        private BigDecimal price;
+        private BigDecimal amount;
+        private BigDecimal nrOfOrders;
+    }
+*/
 
     /**
      * Custom GSON Deserializer for Ticker API call result.
@@ -661,11 +897,17 @@ implements ExchangeAdapter {
      * <p>Have to do this because last entry in the Ticker param map is a String, not an array like
      * the rest of 'em!
      */
+
     private static class CryptoComTickerResultDeserializer
-            implements JsonDeserializer<CryptoComExchangeAdapter.CryptoComTickerResult> {
+            implements JsonDeserializer<CryptoComTickerResult> {
+
+
 
         CryptoComTickerResultDeserializer() {
         }
+
+
+
 
         public CryptoComExchangeAdapter.CryptoComTickerResult deserialize(
                 JsonElement json, Type type, JsonDeserializationContext context) {
@@ -742,17 +984,37 @@ implements ExchangeAdapter {
     }
 
 
+
     // --------------------------------------------------------------------------
     //  Transport layer methods
     // --------------------------------------------------------------------------
 
+    private ExchangeHttpResponse sendAuthenticatedRequestToExchange(
+            String apiMethod, ApiRequestJson apiRequestJson)
+            throws ExchangeNetworkException, TradingApiException {
+
+        final Map<String, String> requestHeaders = createHeaderParamMap();
+        requestHeaders.put("Content-Type", "application/json");
+        try{
+            ApiRequestJson jsonToSend = SigningUtil.sign(apiRequestJson, secret);
+            final URL url = new URL(AUTHENTICATED_API_URL + apiMethod);
+            return makeNetworkRequest(url, "POST", gson.toJson(jsonToSend), requestHeaders);
+        }
+        catch (MalformedURLException | NoSuchAlgorithmException | InvalidKeyException e){
+            throw new TradingApiException("error sending authenticated request", e);
+        }
+    }
+
+
+
     private ExchangeHttpResponse sendPublicRequestToExchange(
-            String apiMethod, Map<String, String> params)
+            String apiMethod, Map<String, Object> params)
             throws ExchangeNetworkException, TradingApiException {
 
         if (params == null) {
             params = createRequestParamMap(); // no params, so empty query string
         }
+
 
         // Request headers required by Exchange
         final Map<String, String> requestHeaders = createHeaderParamMap();
@@ -761,13 +1023,13 @@ implements ExchangeAdapter {
             final StringBuilder queryString = new StringBuilder();
             if (!params.isEmpty()) {
                 queryString.append("?");
-                for (final Map.Entry<String, String> param : params.entrySet()) {
+                for (final Map.Entry<String, Object> param : params.entrySet()) {
                     if (queryString.length() > 1) {
                         queryString.append("&");
                     }
                     queryString.append(param.getKey());
                     queryString.append("=");
-                    queryString.append(URLEncoder.encode(param.getValue(), StandardCharsets.UTF_8));
+                    queryString.append(URLEncoder.encode((String) param.getValue(), StandardCharsets.UTF_8));
                 }
 
                 requestHeaders.put("Content-Type", "application/x-www-form-urlencoded");
@@ -781,91 +1043,37 @@ implements ExchangeAdapter {
             LOG.error(errorMsg, e);
             throw new TradingApiException(errorMsg, e);
         }
+
     }
 
-    /*
-     * Makes an authenticated API call to the Kraken exchange.
-     *
-     * Kraken requires the following HTTP headers to bet set:
-     *
-     * API-Key = API key
-     * API-Sign = Message signature using HMAC-SHA512 of (URI path + SHA256(nonce + POST data))
-     *            and base64 decoded secret API key
-     *
-     * The nonce must always increasing unsigned 64 bit integer.
-     *
-     * Note: Sometimes requests can arrive out of order or NTP can cause your clock to rewind,
-     * resulting in nonce issues. If you encounter this issue, you can change the nonce window in
-     * your account API settings page. The amount to set it to depends upon how you increment the
-     * nonce. Depending on your connectivity, a setting that would accommodate 3-15 seconds of
-     * network issues is suggested.
-     */
-    private ExchangeHttpResponse sendAuthenticatedRequestToExchange(
-            String apiMethod, Map<String, String> params)
-            throws ExchangeNetworkException, TradingApiException {
 
-        if (!initializedMacAuthentication) {
-            final String errorMsg = "MAC Message security layer has not been initialized.";
-            LOG.error(errorMsg);
-            throw new IllegalStateException(errorMsg);
+    private String createSignature(String apiMethod, Map<String,String>params, Long id, String apiKey, Long nonce){
+
+
+        //If "params" exist in the request, sort the request parameter keys in ascending order.
+        //Combine all the ordered parameter keys as key + value (no spaces, no delimiters). Let's call this the parameter string
+        StringBuilder parameterStringBuilder = new StringBuilder();
+        SortedSet<String> keys = new TreeSet<>(params.keySet());
+        for (String key : keys) {
+            parameterStringBuilder.append(key).append(params.get(key));
         }
 
+        //Next, do the following: method + id + api_key + parameter string + nonce
+        StringBuilder toHashStringBuilder = new StringBuilder();
+        toHashStringBuilder.append(apiMethod).append(id).append(apiKey).append(parameterStringBuilder.toString()).append(nonce);
+
+        // Use HMAC-SHA256 to hash the above using the API Secret as the cryptographic key
         try {
-            if (params == null) {
-                // create empty map for non param API calls, e.g. "trades"
-                params = createRequestParamMap();
-            }
-
-            // The nonce is required by Kraken in every request.
-            // It MUST be incremented each time and the nonce param MUST match the value used in
-            // signature.
-            nonce++;
-            params.put("nonce", Long.toString(nonce));
-
-            // Build the URL with query param args in it - yuk!
-            final StringBuilder postData = new StringBuilder();
-            for (final Map.Entry<String, String> param : params.entrySet()) {
-                if (postData.length() > 0) {
-                    postData.append("&");
-                }
-                postData.append(param.getKey());
-                postData.append("=");
-                postData.append(URLEncoder.encode(param.getValue(), StandardCharsets.UTF_8));
-            }
-
-            // And now the tricky part... ;-o
-            final byte[] pathInBytes =
-                    ("/" + CRYPTOCOM_API_VERSION + CRYPTOCOM_PRIVATE_PATH + apiMethod)
-                            .getBytes(StandardCharsets.UTF_8);
-            final String noncePrependedToPostData = Long.toString(nonce) + postData;
-
-            // Create sha256 hash of nonce and post data:
             final MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(noncePrependedToPostData.getBytes(StandardCharsets.UTF_8));
+            md.update(toHashStringBuilder.toString().getBytes(StandardCharsets.UTF_8));
             final byte[] messageHash = md.digest();
-
-            // Create hmac_sha512 digest of path and previous sha256 hash
-            mac.reset(); // force reset
-            mac.update(pathInBytes);
-            mac.update(messageHash);
-
-            // Signature in Base64
-            final String signature = Base64.getEncoder().encodeToString(mac.doFinal());
-
-            // Request headers required by Exchange
-            final Map<String, String> requestHeaders = createHeaderParamMap();
-            requestHeaders.put("Content-Type", "application/x-www-form-urlencoded");
-            requestHeaders.put("API-Key", key);
-            requestHeaders.put("API-Sign", signature);
-
-            final URL url = new URL(AUTHENTICATED_API_URL + apiMethod);
-            return makeNetworkRequest(url, "POST", postData.toString(), requestHeaders);
-
-        } catch (MalformedURLException | NoSuchAlgorithmException e) {
-            final String errorMsg = UNEXPECTED_IO_ERROR_MSG;
-            LOG.error(errorMsg, e);
-            throw new TradingApiException(errorMsg, e);
         }
+        catch (NoSuchAlgorithmException nsae){
+            LOG.error(nsae);
+        }
+
+        //Encode the output as a hex string -- this is your Digital Signature
+        return Base64.getEncoder().encodeToString(mac.doFinal());
     }
 
     /*
@@ -937,8 +1145,8 @@ implements ExchangeAdapter {
         final List<OpenOrder> openOrders = new ArrayList<>();
 
         // Assume we'll always get something here if errors array is empty; else blow fast wih NPE
-        final CryptoComExchangeAdapter.CryptoComOpenOrderResult krakenOpenOrderResult =
-                (CryptoComExchangeAdapter.CryptoComOpenOrderResult) krakenResponse.result;
+        final CryptoComExchangeAdapter.CryptoComOpenOrderResult krakenOpenOrderResult = null;
+                //(CryptoComExchangeAdapter.CryptoComOpenOrderResult) krakenResponse.result;
 
         final Map<String, CryptoComExchangeAdapter.CryptoComOpenOrder> krakenOpenOrders = krakenOpenOrderResult.open;
         if (krakenOpenOrders != null) {
@@ -985,18 +1193,14 @@ implements ExchangeAdapter {
         return openOrders;
     }
 
-    private MarketOrderBookImpl adaptKrakenOrderBook(CryptoComExchangeAdapter.CryptoComResponse cryptoComResponse, String marketId)
+    private MarketOrderBookImpl adaptKrakenOrderBook(CryptoComMarketOrderBookResponse orderBookResponse, String marketId)
             throws TradingApiException {
 
-        // Assume we'll always get something here if errors array is empty; else blow fast wih NPE
-        final CryptoComExchangeAdapter.CryptoComMarketOrderBookResult krakenOrderBookResult =
-                (CryptoComExchangeAdapter.CryptoComMarketOrderBookResult) cryptoComResponse.result;
-        final Optional<CryptoComExchangeAdapter.CryptoComOrderBook> first = krakenOrderBookResult.values().stream().findFirst();
-        if (first.isPresent()) {
-            final CryptoComExchangeAdapter.CryptoComOrderBook cryptoComOrderBook = first.get();
+        final CryptoComExchangeAdapter.CryptoComOrderBookData cryptoComOrderBookData = orderBookResponse.orderBook.data.stream().findFirst().orElse(null); //.stream().findFirst().orElse(null); // .orderBook;. .values().stream().findFirst();
+        if (cryptoComOrderBookData != null) {
 
             final List<MarketOrder> buyOrders = new ArrayList<>();
-            for (CryptoComExchangeAdapter.CryptoComMarketOrder cryptoComBuyOrder : cryptoComOrderBook.bids) {
+            for (CryptoComExchangeAdapter.CryptoComMarketOrder cryptoComBuyOrder : cryptoComOrderBookData.bids) {
                 final MarketOrder buyOrder =
                         new MarketOrderImpl(
                                 OrderType.BUY,
@@ -1007,7 +1211,7 @@ implements ExchangeAdapter {
             }
 
             final List<MarketOrder> sellOrders = new ArrayList<>();
-            for (CryptoComExchangeAdapter.CryptoComMarketOrder cryptoComSellOrder : cryptoComOrderBook.asks) {
+            for (CryptoComExchangeAdapter.CryptoComMarketOrder cryptoComSellOrder : cryptoComOrderBookData.asks) {
                 final MarketOrder sellOrder =
                         new MarketOrderImpl(
                                 OrderType.SELL,
@@ -1018,7 +1222,7 @@ implements ExchangeAdapter {
             }
             return new MarketOrderBookImpl(marketId, sellOrders, buyOrders);
         } else {
-            final String errorMsg = FAILED_TO_GET_MARKET_ORDERS + cryptoComResponse;
+            final String errorMsg = FAILED_TO_GET_MARKET_ORDERS + orderBookResponse;
             LOG.error(errorMsg);
             throw new TradingApiException(errorMsg);
         }
@@ -1026,8 +1230,8 @@ implements ExchangeAdapter {
 
     private boolean adaptKrakenCancelOrderResult(CryptoComExchangeAdapter.CryptoComResponse cryptoComResponse) {
         // Assume we'll always get something here if errors array is empty; else blow fast wih NPE
-        final CryptoComExchangeAdapter.CryptoComCancelOrderResult cryptoComCancelOrderResult =
-                (CryptoComExchangeAdapter.CryptoComCancelOrderResult) cryptoComResponse.result;
+        final CryptoComExchangeAdapter.CryptoComCancelOrderResult cryptoComCancelOrderResult = null;
+                //(CryptoComExchangeAdapter.CryptoComCancelOrderResult) cryptoComResponse.result;
         if (cryptoComCancelOrderResult != null) {
             if (cryptoComCancelOrderResult.count > 0) {
                 return true;
@@ -1045,20 +1249,15 @@ implements ExchangeAdapter {
 
     private BalanceInfoImpl adaptCryptoComBalanceInfo(ExchangeHttpResponse response, Type resultType)
             throws ExchangeNetworkException, TradingApiException {
-        final CryptoComExchangeAdapter.CryptoComResponse cryptoComResponse = gson.fromJson(response.getPayload(), resultType);
-        if (cryptoComResponse != null) {
-            final List errors = cryptoComResponse.error;
-            if (errors == null || errors.isEmpty()) {
-                // Assume we'll always get something here if errors array is empty; else blow fast wih NPE
-                final CryptoComExchangeAdapter.CryptoComBalanceResult balanceResult = (CryptoComExchangeAdapter.CryptoComBalanceResult) cryptoComResponse.result;
+        final CryptoComExchangeAdapter.CryptoComBalancesResponse balancesResponse = gson.fromJson(response.getPayload(), resultType);
+        if (balancesResponse != null) {
+            if (balancesResponse.code.equals(0)) {
+
                 final Map<String, BigDecimal> balancesAvailable = new HashMap<>();
-                final Set<Map.Entry<String, BigDecimal>> entries = balanceResult.entrySet();
-                for (final Map.Entry<String, BigDecimal> entry : entries) {
-                    balancesAvailable.put(entry.getKey(), entry.getValue());
+                for(CryptoComAccountBalance balance : balancesResponse.accounts.balances){
+                    balancesAvailable.put(balance.currency, balance.available);
                 }
 
-                // 2nd arg of BalanceInfo constructor for reserved/on-hold balances is not provided by
-                // exchange.
                 return new BalanceInfoImpl(balancesAvailable, new HashMap<>());
 
             } else {
@@ -1084,6 +1283,7 @@ implements ExchangeAdapter {
         gson = gsonBuilder.create();
     }
 
+
     private static boolean isExchangeUndergoingMaintenance(ExchangeHttpResponse response) {
         if (response != null) {
             final String payload = response.getPayload();
@@ -1100,7 +1300,7 @@ implements ExchangeAdapter {
     /*
      * Hack for unit-testing map params passed to transport layer.
      */
-    private Map<String, String> createRequestParamMap() {
+    private Map<String, Object> createRequestParamMap() {
         return new HashMap<>();
     }
 
@@ -1119,5 +1319,7 @@ implements ExchangeAdapter {
             throws TradingApiException, ExchangeNetworkException {
         return super.sendNetworkRequest(url, httpMethod, postData, requestHeaders);
     }
+
+
 
 }
